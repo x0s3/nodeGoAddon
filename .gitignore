@@ -1,0 +1,6 @@
+.vscode
+node_modules
+yarn.lock
+scrapBooks.so
+scrapBooks.h
+build/
