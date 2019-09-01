@@ -6,13 +6,13 @@
 using namespace v8;
 using std::string;
 
-class Work {
-    friend void WorkAsync (uv_work_t*);
-    friend void WorkAsyncComplete (uv_work_t*, int);
+class Book {
+    friend void BookAsync(uv_work_t*);
+    friend void BookAsyncComplete(uv_work_t*, int);
 
     public:
-        Work() = default;
-        ~Work() = default;
+        Book() = default;
+        ~Book() = default;
         uv_work_t request;
         Persistent<Function> callback;
         string bookTitle = "";
@@ -25,56 +25,56 @@ const char* ToCString(const String::Utf8Value& value) {
   return *value ? *value : "<string conversion failed>";
 }
 
-void WorkAsync (uv_work_t *request) {
-    Work* work = static_cast<Work*>(request->data);
-    char* cstr = &work->bookTitle[0];
+void BookAsync(uv_work_t *request) {
+    Book* book = static_cast<Book*>(request->data);
+    char* cstr = &book->bookTitle[0];
     char* result = GetBookTitle(cstr);
-    std::string str(result);
+    string str(result);
 
-    work->data = str;
+    book->data = str;
     sleep(3); // simulate hard work task
 }
 
-void WorkAsyncComplete (uv_work_t *request, int status) {
+void BookAsyncComplete(uv_work_t *request, int status) {
     Nan::HandleScope scope;
-    Work* work = static_cast<Work*>(request->data);
+    Book* book = static_cast<Book*>(request->data);
 
     Local<Value> argv[] = { 
-        Nan::New<String>(work->data).ToLocalChecked() 
+        Nan::New<String>(book->data).ToLocalChecked() 
     };
-    Local<Function> callback = Nan::New<Function>(work->callback);
+    Local<Function> callback = Nan::New<Function>(book->callback);
 
     Nan::Call(callback, Nan::New<Object>(), 1, argv);
 
-    delete work;
+    delete book;
 }
 
-NAN_METHOD (MethodAsync) {
+NAN_METHOD(MethodAsync) {
     Isolate* isolate = info.GetIsolate();
-    Work* work = new Work();
+    Book* book = new Book();
 
     Nan::Utf8String utf8_value(info[0]);
 
     int len = utf8_value.length();
-    std::string string_copy(*utf8_value, len);
+    string string_copy(*utf8_value, len);
 
-    work->bookTitle = string_copy;
-    work->request.data = work;
+    book->bookTitle = string_copy;
+    book->request.data = book;
 
     Local<Function> callback = Local<Function>::Cast(info[1]);
-    work->callback.Reset(isolate, callback);
+    book->callback.Reset(isolate, callback);
 
     uv_queue_work(
         uv_default_loop(), 
-        &work->request, 
-        WorkAsync, 
-        WorkAsyncComplete
+        &book->request, 
+        BookAsync, 
+        BookAsyncComplete
     );
 
     info.GetReturnValue().Set(Nan::Undefined());
 }
 
-NAN_MODULE_INIT (init) {
+NAN_MODULE_INIT(init) {
     Nan::Set(
         target, 
         Nan::New("getAsyncBookTitle").ToLocalChecked(), 
